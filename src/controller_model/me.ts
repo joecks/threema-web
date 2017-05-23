@@ -30,9 +30,6 @@ export class MeControllerModel implements threema.ControllerModel {
     // Own services
     private webClientService: WebClientService;
 
-    // Callbacks
-    private onRemovedCallback: threema.OnRemovedCallback;
-
     // Own receiver instance
     private me: threema.MeReceiver;
 
@@ -43,7 +40,7 @@ export class MeControllerModel implements threema.ControllerModel {
     public subject: string;
     public isLoading = false;
 
-    // Data shown on page
+    // Profile data
     public nickname: string;
 
     // Editing mode
@@ -62,25 +59,18 @@ export class MeControllerModel implements threema.ControllerModel {
         this.webClientService = webClientService;
         this.mode = mode;
 
+        const profile = webClientService.getProfile();
         switch (mode) {
-            /*case ControllerModelMode.EDIT:
-                this.subject = $translate.instant('messenger.EDIT_RECEIVER', {
-                    receiverName: '@NAME@',
-                }).replace('@NAME@', this.me.displayName);
-                this.firstName = this.me.firstName;
-                this.lastName = this.me.lastName;
+            case ControllerModelMode.EDIT:
+                this.subject = $translate.instant('messenger.EDIT_PROFILE');
+                this.nickname = profile.publicNickname;
                 this.avatarController = new AvatarControllerModel(
                     this.$log, this.webClientService, this.me,
                 );
-
-                this.access = this.me.access;
-                this.firstNameLabel = this.access.canChangeLastName ?
-                    $translate.instant('messenger.FIRST_NAME') :
-                    $translate.instant('messenger.NAME');
-                break;*/
+                break;
             case ControllerModelMode.VIEW:
                 this.subject = $translate.instant('messenger.MY_THREEMA_ID');
-                this.nickname = webClientService.getProfile().publicNickname;
+                this.nickname = profile.publicNickname;
                 break;
             default:
                 $log.error(this.logTag, 'Invalid controller model mode: ', this.getMode());
@@ -88,7 +78,7 @@ export class MeControllerModel implements threema.ControllerModel {
     }
 
     public setOnRemoved(callback: threema.OnRemovedCallback): void {
-        this.onRemovedCallback = callback;
+        // Not applicable
     }
 
     public getMode(): ControllerModelMode {
@@ -108,9 +98,8 @@ export class MeControllerModel implements threema.ControllerModel {
 
     public canEdit(): boolean {
         // The own contact can always be edited
-        // TODO: Restrictions?
-        // return true;
-        return false;
+        // TODO: Restrictions regarding work?
+        return true;
     }
 
     public canShowQr(): boolean {
@@ -126,7 +115,7 @@ export class MeControllerModel implements threema.ControllerModel {
                 );
             default:
                 this.$log.error(this.logTag, 'Not allowed to save profile: Invalid mode');
-
+                return;
         }
     }
 }

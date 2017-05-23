@@ -94,6 +94,7 @@ export class WebClientService {
     private static SUB_TYPE_DISTRIBUTION_LIST = 'distributionList';
     private static SUB_TYPE_ALERT = 'alert';
     private static SUB_TYPE_GROUP_SYNC = 'groupSync';
+    private static SUB_TYPE_PROFILE = 'profile';
     private static ARGUMENT_MODE = 'mode';
     private static ARGUMENT_MODE_REFRESH = 'refresh';
     private static ARGUMENT_MODE_NEW = 'new';
@@ -119,6 +120,8 @@ export class WebClientService {
     private static ARGUMENT_DELETE_TYPE = 'deleteType';
     private static ARGUMENT_ERROR = 'error';
     private static ARGUMENT_MAX_SIZE = 'maxSize';
+    private static ARGUMENT_NICKNAME = 'nickname';
+    private static ARGUMENT_AVATAR = 'avatar';
     private static DATA_FIELD_BLOB_BLOB = 'blob';
     private static DC_LABEL = 'THREEMA';
 
@@ -477,6 +480,8 @@ export class WebClientService {
                     this.$log.warn('Ignoring invalid message (no subType attribute)');
                     return;
                 }
+
+                console.log('Incoming msg:', message.type, '/', message.subType, message);
 
                 // Process data
                 this.$rootScope.$apply(() => {
@@ -1199,6 +1204,31 @@ export class WebClientService {
         };
 
         return this._sendDeletePromise(WebClientService.SUB_TYPE_DISTRIBUTION_LIST, args);
+    }
+
+    /**
+     * Modify own profile.
+     */
+    public modifyProfile(nickname?: string,
+                         avatar?: ArrayBuffer): Promise<threema.MeReceiver> {
+
+        // Prepare payload data
+        const data = {};
+        if (nickname !== undefined && nickname !== null) {
+            data[WebClientService.ARGUMENT_NICKNAME] = nickname;
+        }
+        if (avatar !== undefined && avatar !== null) {
+            data[WebClientService.ARGUMENT_AVATAR] = avatar;
+        }
+
+        // If no changes happened, resolve the promise immediately.
+        if (Object.keys(data).length === 0) {
+            this.$log.warn(this.logTag, 'Trying to modify profile without any changes');
+            return Promise.resolve(this.me);
+        }
+
+        // Send update, get back promise
+        return this._sendUpdatePromise(WebClientService.SUB_TYPE_PROFILE, null, data);
     }
 
     /**
@@ -2117,13 +2147,13 @@ export class WebClientService {
     }
 
     private _sendPromiseMessage(message: threema.WireMessage, timeout: number = null): Promise<any> {
-        // create arguments on wired message
-        if (message.args === undefined) {
+        // Create arguments on wired message
+        if (message.args === null || message.args === undefined) {
             message.args = {};
         }
         let promiseId = message.args[WebClientService.ARGUMENT_TEMPORARY_ID];
         if (promiseId === undefined) {
-            // create a random id to identity the promise
+            // Create a random id to identify the promise
             promiseId = 'p' + Math.random().toString(36).substring(7);
             message.args[WebClientService.ARGUMENT_TEMPORARY_ID] = promiseId;
         }
@@ -2373,6 +2403,7 @@ export class WebClientService {
      */
     private send(message: threema.WireMessage): void {
         this.$log.debug('Sending', message.type + '/' + message.subType, 'message');
+        console.log('Outgoing msg:', message.type, '/', message.subType, message);
         const bytes: Uint8Array = this.msgpackEncode(message);
         this.secureDataChannel.send(bytes);
     }
